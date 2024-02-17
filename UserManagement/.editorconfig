@@ -2,51 +2,38 @@ root = true
 
 [*]
 indent_style = space
+end_of_line = lf
+charset = utf-8
 trim_trailing_whitespace = true
 insert_final_newline = true
-end_of_line = lf
-
-# Visual Studio Solution Files
-[*.sln]
-indent_style = tab
 
 # XML project files
 [*.{csproj,vbproj,vcxproj,vcxproj.filters,proj,projitems,shproj}]
-indent_size = 2
+indent_size = 3
 
 # Various XML Configuration Files
 [*.{xml,config,props,targets,nuspec,resx,ruleset,vsixmanifest,vsct}]
-indent_size = 2
-charset = utf-8
-
-# JSON files
-[*.json]
 indent_size = 3
-charset = utf-8
-
-[*.{md,txt}]
-indent_style = space
-indent_size = 3
-trim_trailing_whitespace = false
-charset = utf-8
-
-# Set default charset
-[*.{js,html,css}]
-indent_style = space
-indent_size = 3
-charset = utf-8
-
-# Sql Files
-[*.sql]
-indent_size = 3
-charset = utf-8
 
 # Code files
 [*.{cs,csx,vb,vbx}]
 indent_size = 3
-insert_final_newline = true
-charset = utf-8-bom
-trim_trailing_whitespace = true
+
+# JSON files
+[*.json]
+indent_size = 3
+
+[*.{md,txt}]
+indent_size = 3
+trim_trailing_whitespace = false
+
+# Set default charset
+[*.{js,html,css}]
+indent_size = 3
+
+# Sql Files
+[*.sql]
+indent_size = 3
 
 ###############################
 # .NET Coding Conventions     #
@@ -90,10 +77,12 @@ dotnet_naming_style.pascal_case_style.capitalization             = pascal_case
 # Use PascalCase for constant fields
 dotnet_naming_rule.constant_fields_should_be_pascal_case.severity = suggestion
 dotnet_naming_rule.constant_fields_should_be_pascal_case.symbols  = constant_fields
-dotnet_naming_rule.constant_fields_should_be_pascal_case.style    = pascal_case_style
+dotnet_naming_rule.constant_fields_should_be_pascal_case.style = pascal_case_style
 dotnet_naming_symbols.constant_fields.applicable_kinds            = field
 dotnet_naming_symbols.constant_fields.applicable_accessibilities  = *
 dotnet_naming_symbols.constant_fields.required_modifiers          = const
+dotnet_style_operator_placement_when_wrapping = beginning_of_line
+tab_width = 3
 
 ###############################
 # C# Coding Conventions       #
@@ -189,6 +178,14 @@ dotnet_diagnostic.CA1707.severity = silent
 
 # CA1056: Uri properties should not be strings
 dotnet_diagnostic.CA1056.severity = none
+csharp_using_directive_placement = outside_namespace:silent
+csharp_prefer_simple_using_statement = false:suggestion
+csharp_style_namespace_declarations = block_scoped:silent
+csharp_style_prefer_method_group_conversion = true:silent
+csharp_style_prefer_top_level_statements = true:silent
+csharp_style_prefer_primary_constructors = true:suggestion
+csharp_style_expression_bodied_lambdas = true:silent
+csharp_style_expression_bodied_local_functions = false:silent
 
 [*.vb]
 # Modifier preferences

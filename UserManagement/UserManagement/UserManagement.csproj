@@ -6,4 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <ItemGroup>
+    <EditorConfigFiles Remove="D:\Development\InfoStudi\modern-dev\UserManagement\UserManagement\.editorconfig" />
+  </ItemGroup>
+
 </Project>
