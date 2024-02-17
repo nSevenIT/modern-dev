@@ -1,4 +1,4 @@
-﻿using UserManagement.Services;
+using UserManagement.Services;
 
 namespace UserManagement
 {
