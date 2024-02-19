@@ -1,16 +1,15 @@
 namespace UserManagement.Services
 {
-   public class LoggerService : ILoggerService, IDisposable
+   public class LoggerService : ILoggerService // IDisposable
    {
       public void LogMessage(string message)
       {
          File.WriteAllText("log.log", message);
       }
 
-      public void Dispose()
+      public void LogError(Exception exception, string? message = "")
       {
-         var stop = "stop";
+         File.WriteAllText("error.log", exception.Message + "\n" + message);
       }
-
    }
 }

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Mvc;
+using UserManagement.Middlewares;
 using UserManagement.Services;
 
 namespace UserManagement
@@ -10,7 +12,18 @@ namespace UserManagement
 
          //// Add services to the container.
 
-         //builder.Services.AddAuthorization();
+         builder.Services.AddProblemDetails();
+         builder.Services.AddExceptionHandler<ApplicationExceptionHandler>();
+         // builder.Services.AddTransient<ExceptionHanlerMiddleware>();
+
+         // Opzioni definite in appSettings.<env>.json
+         builder.Services
+            .AddOptions<Options.ApplicationOptions>()
+            .BindConfiguration(Options.ApplicationOptions.SECTION_NAME)
+            .Validate(option =>
+            {
+               return !string.IsNullOrWhiteSpace(option.Name);
+            });
 
          builder.Services.AddScoped<IUsersService, UsersService>();
          builder.Services.AddSingleton<ILoggerService, LoggerService>();
@@ -19,9 +32,21 @@ namespace UserManagement
 
          // Configure the HTTP request pipeline.
 
-         //app.UseHttpsRedirection();
+         // Middleware order
+         // https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/?view=aspnetcore-8.0
 
-         //app.UseAuthorization();
+         app.UseStatusCodePages();
+         app.UseExceptionHandler();
+
+         // app.UseMiddleware<ExceptionHanlerMiddleware>();
+         // app.UseMiddleware<ResponseTimeMiddleware>();
+
+         //// 2. Middleware
+         //app.Use(async (context, next) =>
+         //{
+         //   await next();
+         //   await context.Response.WriteAsync("Map Test 1");
+         //});
 
          app.MapGet("/api/users", GetUsers);  // Get list
          app.MapGet("/api/users/{id:int}", GetUser);  // Get specific
@@ -32,23 +57,26 @@ namespace UserManagement
          app.Run();
       }
 
-      public static IResult GetUsers(IUsersService usersService, HttpContext httpContext)
+      public static async Task<IResult> GetUsers([FromQuery] int pageNumber,
+         IUsersService usersService,
+         HttpContext httpContext,
+         CancellationToken cancellationToken)
       {
-         var result = new List<User>();
+         var users = await usersService.GetUsersAsync(pageNumber, cancellationToken);
 
-         return Results.Ok(result);
+         return Results.Ok(users);
       }
 
-      public static IResult GetUser(int id, IUsersService usersService, HttpContext httpContext)
+      public static IResult GetUser([FromRoute] int id, IUsersService usersService, HttpContext httpContext)
       {
-         //var result = usersService.SaveUsers(new User());
 
-         return Results.Ok(new User());
+
+         return Results.Ok(new User(2));
       }
 
       public static IResult SaveUser(User user, IUsersService usersService, HttpContext httpContext)
       {
-         var result = usersService.SaveUsers(new User());
+         var result = usersService.SaveUsers(new User(3));
 
          return Results.Ok(result);
       }
@@ -57,14 +85,14 @@ namespace UserManagement
       {
          //var result = usersService.SaveUsers(new User());
 
-         return Results.Ok(new User());
+         return Results.Ok(new User(4));
       }
 
       public static IResult DeleteUser(IUsersService usersService, HttpContext httpContext)
       {
          //var result = usersService.SaveUsers(new User());
 
-         return Results.Ok(new User());
+         return Results.Ok(new User(5));
       }
    }
 }
