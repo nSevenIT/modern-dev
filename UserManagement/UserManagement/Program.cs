@@ -1,4 +1,6 @@
+using ApplicationServices;
 using Microsoft.AspNetCore.Mvc;
+using UserManagement.Extensions;
 using UserManagement.Middlewares;
 using UserManagement.Services;
 
@@ -25,6 +27,10 @@ namespace UserManagement
                return !string.IsNullOrWhiteSpace(option.Name);
             });
 
+         builder.Services
+                .AddDatabaseContext(builder.Configuration)
+                .AddDatabaseDeveloperPageExceptionFilter();
+
          builder.Services.AddScoped<IUsersService, UsersService>();
          builder.Services.AddSingleton<ILoggerService, LoggerService>();
 
@@ -38,61 +44,96 @@ namespace UserManagement
          app.UseStatusCodePages();
          app.UseExceptionHandler();
 
-         // app.UseMiddleware<ExceptionHanlerMiddleware>();
-         // app.UseMiddleware<ResponseTimeMiddleware>();
-
-         //// 2. Middleware
-         //app.Use(async (context, next) =>
-         //{
-         //   await next();
-         //   await context.Response.WriteAsync("Map Test 1");
-         //});
-
-         app.MapGet("/api/users", GetUsers);  // Get list
-         app.MapGet("/api/users/{id:int}", GetUser);  // Get specific
-         app.MapPost("/api/users", SaveUser); // Create
-         app.MapPut("/api/users", UpdateUser); // Update
-         app.MapDelete("/api/users", DeleteUser); // Delete
+         app.MapGet("/api/users", GetUsersAsync);  // Get list
+         app.MapGet("/api/users/{id:guid}", GetUserAsync);  // Get specific
+         app.MapPost("/api/users", CreateUserAync); // Create
+         app.MapPut("/api/users", UpdateUserAsync); // Update
+         app.MapDelete("/api/users/{id:guid}", DeleteUserAsync); // Delete
 
          app.Run();
       }
 
-      public static async Task<IResult> GetUsers([FromQuery] int pageNumber,
+      public static async Task<IResult> GetUsersAsync(
+         [FromQuery] int pageNumber,
          IUsersService usersService,
          HttpContext httpContext,
          CancellationToken cancellationToken)
       {
-         var users = await usersService.GetUsersAsync(pageNumber, cancellationToken);
+         var users = await usersService.GetUsersAsync(pageNumber, 20, cancellationToken);
 
          return Results.Ok(users);
       }
 
-      public static IResult GetUser([FromRoute] int id, IUsersService usersService, HttpContext httpContext)
+      public static async Task<IResult> GetUserAsync([FromRoute] Guid id, IUsersService usersService, CancellationToken cancellationToken)
       {
+         var users = await usersService.GetUserAsync(id, cancellationToken);
 
-
-         return Results.Ok(new User(2));
+         return Results.Ok(users);
       }
 
-      public static IResult SaveUser(User user, IUsersService usersService, HttpContext httpContext)
+      public static async Task<IResult> CreateUserAync([FromBody] CreateUser user,
+         IUsersService usersService,
+         CancellationToken cancellationToken)
       {
-         var result = usersService.SaveUsers(new User(3));
 
-         return Results.Ok(result);
+         var newUser = new Domain.User(user.Name, user.EmailAddress)
+         {
+            CreatedAt = DateTime.Now,
+            CreatedBy = "Admin",
+            UpdatedAt = DateTime.Now,
+            UpdatedBy = "Admin",
+         };
+
+         var result = await usersService.CreateUsersAsync(newUser, cancellationToken);
+
+         return Results.Created($"/api/users/{newUser.Id}", newUser);
       }
 
-      public static IResult UpdateUser(IUsersService usersService, HttpContext httpContext)
+      public static async Task<IResult> UpdateUserAsync([FromBody] UpdateUser user, IUsersService usersService, CancellationToken cancellationToken)
       {
-         //var result = usersService.SaveUsers(new User());
+         var oldUser = new Domain.User(user.Name, user.EmailAddress)
+         {
+            UpdatedAt = DateTime.Now,
+            UpdatedBy = "Admin",
+         };
 
-         return Results.Ok(new User(4));
+         oldUser.Id = user.Id;
+
+         var result = await usersService.UpdateUsersAsync(oldUser, cancellationToken);
+
+         return Results.Ok();
       }
 
-      public static IResult DeleteUser(IUsersService usersService, HttpContext httpContext)
+      public static async Task<IResult> DeleteUserAsync([FromRoute] Guid id, IUsersService usersService, CancellationToken cancellation)
       {
-         //var result = usersService.SaveUsers(new User());
+         var result = await usersService.DeleteUserAsync(id, cancellation);
 
-         return Results.Ok(new User(5));
+         if (result)
+         {
+            return Results.Ok();
+         }
+         else
+         {
+            return Results.BadRequest();
+         }
       }
+   }
+
+   public class CreateUser
+   {
+      public string Name { get; set; } = string.Empty;
+
+      public string EmailAddress { get; set; } = string.Empty;
+
+   }
+
+   public class UpdateUser
+   {
+      public Guid Id { get; set; }
+
+      public string Name { get; set; } = string.Empty;
+
+      public string EmailAddress { get; set; } = string.Empty;
+
    }
 }
