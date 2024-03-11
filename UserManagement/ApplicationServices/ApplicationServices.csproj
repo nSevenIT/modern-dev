@@ -1,14 +1,19 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+   <PropertyGroup>
+      <TargetFramework>net8.0</TargetFramework>
+      <ImplicitUsings>enable</ImplicitUsings>
+      <Nullable>enable</Nullable>
+      <GenerateDocumentationFile>true</GenerateDocumentationFile>
+   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\DataContext\DataContext.csproj" />
-    <ProjectReference Include="..\Domain\Domain.csproj" />
-  </ItemGroup>
+   <ItemGroup>
+      <PackageReference Include="FluentValidation" Version="11.9.0" />
+   </ItemGroup>
+
+   <ItemGroup>
+      <ProjectReference Include="..\DataContext\DataContext.csproj" />
+      <ProjectReference Include="..\Domain\Domain.csproj" />
+   </ItemGroup>
 
 </Project>

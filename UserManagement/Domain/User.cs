@@ -24,12 +24,12 @@ namespace Domain
       /// <summary>
       /// Name of the user
       /// </summary>
-      public required string Name { get; init; } = string.Empty;
+      public required string Name { get; set; } = string.Empty;
 
       /// <summary>
       /// Email Address
       /// </summary>
-      public required string EmailAddress { get; init; } = string.Empty;
+      public required string EmailAddress { get; set; } = string.Empty;
 
       /// <summary>
       /// UTC Date of Creation

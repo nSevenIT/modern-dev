@@ -23,6 +23,15 @@ namespace UserManagement.Extensions
                options.CommandTimeout(45);
                options.EnableRetryOnFailure(3, TimeSpan.FromMilliseconds(500), null);
             });
+
+#if DEBUG
+            options.LogTo(Console.WriteLine, new[] { DbLoggerCategory.Database.Command.Name }, LogLevel.Information);
+
+            // options.EnableSensitiveDataLogging();
+
+            options.EnableDetailedErrors();
+            options.ConfigureWarnings(warnings => warnings.Default(WarningBehavior.Log));
+#endif
          });
 
          return services;

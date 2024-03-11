@@ -1,22 +1,38 @@
 using ApplicationServices;
-using Microsoft.AspNetCore.Mvc;
+using FluentValidation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Identity.Web;
+using Serilog;
+using Serilog.Extensions.Hosting;
 using UserManagement.Extensions;
+using UserManagement.Features.Users;
 using UserManagement.Middlewares;
-using UserManagement.Services;
 
 namespace UserManagement
 {
    public class Program
    {
+      /// <summary>
+      /// Create a Serilog logger
+      /// </summary>
+      /// <returns>Reloadable Logger</returns>
+      private static ReloadableLogger CreateLogger() => new LoggerConfiguration()
+              .CreateBootstrapLogger();
+
       public static void Main(string[] args)
       {
+         Log.Logger = CreateLogger();
+
          var builder = WebApplication.CreateBuilder(args);
 
          //// Add services to the container.
 
+         builder.Host.UseSerilog((context, configuration) => configuration
+                .WriteTo.Console()
+                .ReadFrom.Configuration(context.Configuration));
+
          builder.Services.AddProblemDetails();
          builder.Services.AddExceptionHandler<ApplicationExceptionHandler>();
-         // builder.Services.AddTransient<ExceptionHanlerMiddleware>();
 
          // Opzioni definite in appSettings.<env>.json
          builder.Services
@@ -31,8 +47,41 @@ namespace UserManagement
                 .AddDatabaseContext(builder.Configuration)
                 .AddDatabaseDeveloperPageExceptionFilter();
 
+         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                          .AddMicrosoftIdentityWebApi(options =>
+                          {
+                             builder.Configuration.Bind("AzureAd", options);
+                             options.TokenValidationParameters.NameClaimType = "name";
+                          }, options =>
+                          {
+                             builder.Configuration.Bind("AzureAd", options);
+                          });
+
+         builder.Services.AddAuthorizationBuilder()
+             .AddPolicy("MyAuthorizationPolicy", policyBuilder =>
+                policyBuilder.Requirements.Add(new ScopeAuthorizationRequirement()
+                {
+                   RequiredScopesConfigurationKey = $"AzureAd:Scopes"
+                }));
+
+         // builder.Services.AddHttpContextAccessor();
+
          builder.Services.AddScoped<IUsersService, UsersService>();
-         builder.Services.AddSingleton<ILoggerService, LoggerService>();
+
+         // Open Api Documentation
+         if (builder.Environment.IsDevelopment())
+         {
+            builder.Services
+                   .AddEndpointsApiExplorer()
+                   .AddSwaggerGen(options =>
+                   {
+                      options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "ApplicationServices.xml"));
+                      options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "Domain.xml"));
+                   });
+         }
+
+         // Fluent Validation
+         builder.Services.AddValidatorsFromAssemblyContaining(typeof(ApplicationServices.Commands.CreateUser));
 
          var app = builder.Build();
 
@@ -44,96 +93,40 @@ namespace UserManagement
          app.UseStatusCodePages();
          app.UseExceptionHandler();
 
-         app.MapGet("/api/users", GetUsersAsync);  // Get list
-         app.MapGet("/api/users/{id:guid}", GetUserAsync);  // Get specific
-         app.MapPost("/api/users", CreateUserAync); // Create
-         app.MapPut("/api/users", UpdateUserAsync); // Update
-         app.MapDelete("/api/users/{id:guid}", DeleteUserAsync); // Delete
+#if DEBUG
+         // Output all trafic in console
+         app.UseSerilogRequestLogging();
+#endif
+
+         if (app.Environment.IsDevelopment())
+         {
+            app.UseSwagger()
+               .UseSwaggerUI();
+         }
+
+         app.UseHttpsRedirection();
+
+         // // app.UseCors();
+         app.UseAuthorization();
+
+         app.MapGroup("/api/users").MapUsersEndpoints()
+             .WithTags("Users")
+             .WithOpenApi()
+             .WithMetadata()
+             .AddEndpointFilter<ResponseTimeFilter>();
+
+         // Swagger / OpenApi only in test
+         if (app.Environment.IsDevelopment())
+         {
+            _ = app.MapGet("", context =>
+            {
+               context.Response.Redirect("./swagger/index.html", permanent: false);
+
+               return Task.CompletedTask;
+            });
+         }
 
          app.Run();
       }
-
-      public static async Task<IResult> GetUsersAsync(
-         [FromQuery] int pageNumber,
-         IUsersService usersService,
-         HttpContext httpContext,
-         CancellationToken cancellationToken)
-      {
-         var users = await usersService.GetUsersAsync(pageNumber, 20, cancellationToken);
-
-         return Results.Ok(users);
-      }
-
-      public static async Task<IResult> GetUserAsync([FromRoute] Guid id, IUsersService usersService, CancellationToken cancellationToken)
-      {
-         var users = await usersService.GetUserAsync(id, cancellationToken);
-
-         return Results.Ok(users);
-      }
-
-      public static async Task<IResult> CreateUserAync([FromBody] CreateUser user,
-         IUsersService usersService,
-         CancellationToken cancellationToken)
-      {
-
-         var newUser = new Domain.User(user.Name, user.EmailAddress)
-         {
-            CreatedAt = DateTime.Now,
-            CreatedBy = "Admin",
-            UpdatedAt = DateTime.Now,
-            UpdatedBy = "Admin",
-         };
-
-         var result = await usersService.CreateUsersAsync(newUser, cancellationToken);
-
-         return Results.Created($"/api/users/{newUser.Id}", newUser);
-      }
-
-      public static async Task<IResult> UpdateUserAsync([FromBody] UpdateUser user, IUsersService usersService, CancellationToken cancellationToken)
-      {
-         var oldUser = new Domain.User(user.Name, user.EmailAddress)
-         {
-            UpdatedAt = DateTime.Now,
-            UpdatedBy = "Admin",
-         };
-
-         oldUser.Id = user.Id;
-
-         var result = await usersService.UpdateUsersAsync(oldUser, cancellationToken);
-
-         return Results.Ok();
-      }
-
-      public static async Task<IResult> DeleteUserAsync([FromRoute] Guid id, IUsersService usersService, CancellationToken cancellation)
-      {
-         var result = await usersService.DeleteUserAsync(id, cancellation);
-
-         if (result)
-         {
-            return Results.Ok();
-         }
-         else
-         {
-            return Results.BadRequest();
-         }
-      }
-   }
-
-   public class CreateUser
-   {
-      public string Name { get; set; } = string.Empty;
-
-      public string EmailAddress { get; set; } = string.Empty;
-
-   }
-
-   public class UpdateUser
-   {
-      public Guid Id { get; set; }
-
-      public string Name { get; set; } = string.Empty;
-
-      public string EmailAddress { get; set; } = string.Empty;
-
    }
 }

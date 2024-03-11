@@ -1,22 +1,24 @@
 using System.Net;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using UserManagement.Services;
 
 namespace UserManagement.Middlewares
 {
+   /// <summary>
+   /// TODO Use ILogger
+   /// </summary>
    public class ApplicationExceptionHandler : IExceptionHandler
    {
-      private readonly ILoggerService _logger;
+      private readonly ILogger<ApplicationExceptionHandler> _logger;
 
-      public ApplicationExceptionHandler(ILoggerService logger)
+      public ApplicationExceptionHandler(ILogger<ApplicationExceptionHandler> logger)
       {
          _logger = logger;
       }
 
       public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
       {
-         _logger.LogError(exception);
+         _logger.LogError(exception, "");
 
          httpContext.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
 

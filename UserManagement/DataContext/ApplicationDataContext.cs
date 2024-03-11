@@ -1,5 +1,4 @@
 using DataContext.Configuration;
-using Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace DataContext
@@ -13,7 +12,7 @@ namespace DataContext
       /// <summary>
       /// Users
       /// </summary>
-      public DbSet<User> Users { get; set; }
+      public DbSet<Domain.User> Users { get; set; }
 
       /// <summary>
       /// OnModelCreating
